@@ -1,10 +1,30 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+import 'package:ip_location/ip_location.dart';
+import 'package:net_dio_request/net_request.dart';
+import 'package:qs_event_analytics/analytic_error_db.dart';
+import 'package:qs_event_analytics/analytic_error_model.dart';
 import 'package:qs_event_analytics/analytic_model.dart';
+import 'package:qs_event_analytics/event_bus_tool.dart';
 import 'package:qs_event_analytics/firebase_analytic_tool.dart';
+import 'package:qs_event_analytics/net_connection_checker.dart';
+import 'package:uuid/uuid.dart';
 
 class AnalyticTool {
   /// Func
   /// 初始化
-   Future<void> initialize() async {
+  Future<void> initialize({
+    required String userid,
+    required String api,
+    required String systemVersion,
+    required String appVersion,
+  }) async {
+    _userid = userid;
+    _api = api;
+    _systemVersion = systemVersion;
+    _appVersion = appVersion;
+
     await FirebaseAnalyticTool.initialize();
   }
 
@@ -15,7 +35,7 @@ class AnalyticTool {
     required EventType type,
     int? timestamp,
     required String? belongPage,
-    Map<String, dynamic>? extra,
+    Map<String, String>? extra,
   }) {
     var newTimestamp = timestamp ?? DateTime.now().millisecondsSinceEpoch;
     if (type == EventType.pageIn) {
@@ -39,7 +59,7 @@ class AnalyticTool {
     FirebaseAnalyticTool.addEvent(name: "${code}_${type.firebaseTypeCode}");
 
     // 接口记录
-    ApiTool.recordEvent(
+    recordEvent(
       sessionId: _sessionId,
       eventCode: code,
       eventName: type.eventNamePrefix.replaceAll("@name", name),
@@ -47,6 +67,7 @@ class AnalyticTool {
       timestamp: newTimestamp,
       belongPage: belongPage,
       extra: extra,
+      onSuccess: () {},
       onError: () {
         // 记录失败的事件
         var model = AnalyticModel(
@@ -58,13 +79,15 @@ class AnalyticTool {
           belongPage: belongPage,
           extra: extra,
         );
-        failedEvents.add(model);
+        var data = jsonEncode(model);
+        var errorModel = AnalyticErrorModel(data: data);
+        AnalyticErrorDb.getInstance().then((db) => db.insert(row: errorModel));
       },
     );
   }
 
   /// 记录打点事件
-  static Future<void> recordEvent({
+  Future<void> recordEvent({
     required String sessionId,
     required String eventCode,
     required String eventName,
@@ -72,15 +95,11 @@ class AnalyticTool {
     required int timestamp,
     String? belongPage,
     Map<String, dynamic>? extra,
+    required Function() onSuccess,
     required Function() onError,
   }) async {
-    String deviceId = await DeviceTool.getDeviceId();
     // 获取位置信息
-    final loaction = await NetRequest.getLocationByIp();
-    // 获取设备系统版本
-    var deviceOSVersion = await DeviceTool.getDeviceOSVersion();
-    // 获取版本号
-    String? appVersion = await DeviceTool.getAppVersion();
+    final loaction = await IpLocation.getIpLocation();
     // 将 extra 转为 JSON 字符串
     final extraContent = extra == null ? null : jsonEncode(extra);
     // 是否测试环境
@@ -88,7 +107,7 @@ class AnalyticTool {
 
     var parameters = {
       "sessionId": sessionId,
-      "uuid": deviceId,
+      "uuid": _userid,
       "eventCode": eventCode,
       "eventName": eventName,
       "eventType": eventType.typeCode,
@@ -96,87 +115,31 @@ class AnalyticTool {
       "userIp": loaction?.ip ?? "",
       "countryCode": loaction?.country ?? "",
       "cityCode": loaction?.city ?? "",
-      "systemVersion": deviceOSVersion,
-      "appVersion": appVersion,
+      "systemVersion": _systemVersion,
+      "appVersion": _appVersion,
       "attrPage": belongPage ?? "",
       "eventContent": extraContent,
-      "env": isTest ? "dev" : "prd"
+      "env": isTest ? "dev" : "prd",
     };
-
-    var response = await NetRequest().post(
-      apiUrl: kEventUrl,
-      parameters: parameters,
-    );
-
-    if (response?.data["code"] != 0) {
+    try {
+      var response = await NetRequest.shared.postJson(
+        _api,
+        parameters: parameters,
+      );
+      if (response?["code"] != 0) {
+        onError();
+      } else {
+        onSuccess();
+        if (kDebugMode) {
+          print(
+            "打点成功: $eventName, eventCode: $eventCode, belongPage: $belongPage, extra: $extra, type: $eventType",
+          );
+        }
+      }
+    } catch (e) {
       onError();
-    } else {
-      Logger.info(
-          "打点成功: $eventName, eventCode: $eventCode, belongPage: $belongPage, extra: $extra, type: $eventType");
+      return;
     }
-  }
-
-  /// 重新发送失败的事件
-  Future<void> _resendFailedEvents() async {
-    if (_isSending) return;
-    if (failedEvents.isEmpty) return;
-
-    _isSending = true;
-
-    while (failedEvents.isNotEmpty) {
-      final model = failedEvents.removeAt(0);
-
-      bool isSuccess = true;
-      await ApiTool.recordEvent(
-        sessionId: model.sessionId,
-        eventCode: model.eventCode,
-        eventName: model.eventName,
-        eventType: model.eventType,
-        timestamp: model.timestamp,
-        belongPage: model.belongPage,
-        extra: model.extra,
-        onError: () {
-          failedEvents.add(model);
-          isSuccess = false;
-        },
-      );
-
-      // 网络异常，停止发送
-      if (!isSuccess) {
-        // 10秒后重试
-        Future.delayed(const Duration(seconds: 10), () {
-          _resendFailedEvents();
-        });
-        break;
-      }
-
-      // 防止长时间同步循环卡 UI
-      await Future.delayed(const Duration(milliseconds: 10));
-    }
-
-    // 移除已成功发送的
-    failedEvents.removeWhere((e) => true); // 或按 success 做删除策略
-    _isSending = false;
-  }
-
-  /// 用户操作行为
-  void _userAction() {
-    // 检查网络连接
-    NetConnectionChecker.getInstance().then((checker) {
-      getEver(
-        checker.isNetConnected,
-        disposeBag: disposeBag,
-        callback: (isConnected) async {
-          if (isConnected) {
-            _resendFailedEvents();
-          }
-        },
-      );
-
-      if (checker.isNetConnected.value) {
-        _resendFailedEvents();
-      }
-    });
   }
 
   /// 获取当前页面信息
@@ -189,13 +152,13 @@ class AnalyticTool {
   }
 
   /// 返回当前页面
-  void returnToCurrentPage({required Map<String, dynamic> pageData}) {
-    String? code = pageData["code"] as String?;
-    String? name = pageData["name"] as String?;
-    Map<String, dynamic>? extra = pageData["extra"] as Map<String, dynamic>?;
+  void returnToCurrentPage({required Map<String, String> pageData}) {
+    String? code = pageData["code"];
+    String? name = pageData["name"];
+    Map<String, String>? extra = pageData["extra"] as Map<String, String>?;
 
     if (code != null && name != null) {
-      recordEvent(
+      addEvent(
         code: code,
         name: name,
         type: EventType.pageIn,
@@ -205,24 +168,65 @@ class AnalyticTool {
     }
   }
 
+  /// 用户操作行为
+  void _userAction() {
+    EventBusTool.listenEvent(
+      event: ScriptEventType("net_connect_state"),
+      onEvent: (parameters) {
+        final isConnected = parameters?["isConnected"] as bool?;
+        if (isConnected == true) {
+          // 重新发送失败事件
+          _resendFailedEvents();
+        }
+      },
+    );
+    // 检查网络连接
+    NetConnectionChecker.getInstance().then((checker) {});
+  }
+
+  /// 重新发送失败事件
+  /// 从数据库中读取失败事件并重新发送
+  Future<void> _resendFailedEvents() async {
+    var db = await AnalyticErrorDb.getInstance();
+    var rows = await db.queryAll();
+    for (var row in rows) {
+      var errorModel = AnalyticErrorModel.fromJson(jsonDecode(row.data));
+      var model = AnalyticModel.fromJson(jsonDecode(errorModel.data));
+      recordEvent(
+        sessionId: model.sessionId,
+        eventCode: model.eventCode,
+        eventName: model.eventName,
+        eventType: model.eventType,
+        timestamp: model.timestamp,
+        belongPage: model.belongPage,
+        extra: model.extra,
+        onSuccess: () {
+          // 删除成功的事件
+          db.delete(row: errorModel);
+        },
+        onError: () {},
+      );
+    }
+  }
+
   /// Property
-  final DisposeBag disposeBag = DisposeBag();
+  String _userid = "";
+  String _api = "";
+  String _systemVersion = "";
+  String _appVersion = "";
   final String _sessionId = const Uuid().v4();
+
   String currentPageCode = "";
   String _currentPageName = "";
   Map<String, dynamic>? _currentPageExtra;
 
-  // 发送失败的点
-  List<EventLogModel> failedEvents = [];
-  bool _isSending = false;
-
   /// 单例
-  static final EventLog _instance = EventLog._internal();
-  EventLog._internal() {
+  static final AnalyticTool _instance = AnalyticTool._internal();
+  AnalyticTool._internal() {
     _userAction();
   }
 
-  static EventLog getInstance() {
+  static AnalyticTool getInstance() {
     return _instance;
   }
 }

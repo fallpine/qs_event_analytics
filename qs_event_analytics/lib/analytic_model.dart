@@ -1,3 +1,8 @@
+import 'package:json_annotation/json_annotation.dart';
+
+part 'analytic_model.g.dart';
+
+@JsonSerializable()
 class AnalyticModel {
   final String sessionId;
   final String eventCode;
@@ -5,7 +10,7 @@ class AnalyticModel {
   final EventType eventType;
   final int timestamp;
   final String? belongPage;
-  final Map<String, dynamic>? extra;
+  final Map<String, String>? extra;
 
   AnalyticModel({
     required this.sessionId,
@@ -16,6 +21,13 @@ class AnalyticModel {
     required this.belongPage,
     required this.extra,
   });
+
+  /// 从 JSON 创建 AnalyticModel 对象
+  factory AnalyticModel.fromJson(Map<String, dynamic> json) =>
+      _$AnalyticModelFromJson(json);
+
+  /// 将 AnalyticModel 对象转为 JSON
+  Map<String, dynamic> toJson() => _$AnalyticModelToJson(this);
 }
 
 enum EventType {
