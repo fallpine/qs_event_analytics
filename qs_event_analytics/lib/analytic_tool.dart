@@ -152,7 +152,7 @@ class AnalyticTool {
   }
 
   /// 返回当前页面
-  void returnToCurrentPage({required Map<String, String> pageData}) {
+  void returnToCurrentPage({required Map<String, dynamic> pageData}) {
     String? code = pageData["code"];
     String? name = pageData["name"];
     Map<String, String>? extra = pageData["extra"] as Map<String, String>?;
