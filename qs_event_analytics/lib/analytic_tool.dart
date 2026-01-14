@@ -125,6 +125,7 @@ class AnalyticTool {
       var response = await NetRequest.shared.postJson(
         _api,
         parameters: parameters,
+        isShowLoading: false,
       );
       if (response?["code"] != 0) {
         onError();
@@ -144,11 +145,7 @@ class AnalyticTool {
 
   /// 获取当前页面信息
   Map<String, dynamic> getCurrentPageData() {
-    return {
-      "code": currentPageCode,
-      "name": _currentPageName,
-      "extra": _currentPageExtra,
-    };
+    return {"code": currentPageCode, "name": _currentPageName, "extra": _currentPageExtra};
   }
 
   /// 返回当前页面
@@ -158,13 +155,7 @@ class AnalyticTool {
     Map<String, String>? extra = pageData["extra"] as Map<String, String>?;
 
     if (code != null && name != null) {
-      addEvent(
-        code: code,
-        name: name,
-        type: EventType.pageIn,
-        belongPage: code,
-        extra: extra,
-      );
+      addEvent(code: code, name: name, type: EventType.pageIn, belongPage: code, extra: extra);
     }
   }
 
@@ -190,22 +181,28 @@ class AnalyticTool {
     var db = await AnalyticErrorDb.getInstance();
     var rows = await db.queryAll();
     for (var row in rows) {
-      var errorModel = AnalyticErrorModel.fromJson(jsonDecode(row.data));
-      var model = AnalyticModel.fromJson(jsonDecode(errorModel.data));
-      recordEvent(
-        sessionId: model.sessionId,
-        eventCode: model.eventCode,
-        eventName: model.eventName,
-        eventType: model.eventType,
-        timestamp: model.timestamp,
-        belongPage: model.belongPage,
-        extra: model.extra,
-        onSuccess: () {
-          // 删除成功的事件
-          db.delete(row: errorModel);
-        },
-        onError: () {},
-      );
+      try {
+        var errorModel = AnalyticErrorModel.fromJson(jsonDecode(row.data ?? ""));
+        var model = AnalyticModel.fromJson(jsonDecode(errorModel.data ?? ""));
+        recordEvent(
+          sessionId: model.sessionId,
+          eventCode: model.eventCode,
+          eventName: model.eventName,
+          eventType: model.eventType,
+          timestamp: model.timestamp,
+          belongPage: model.belongPage,
+          extra: model.extra,
+          onSuccess: () {
+            // 删除成功的事件
+            db.delete(row: errorModel);
+          },
+          onError: () {},
+        );
+      } catch (e) {
+        if (kDebugMode) {
+          print("重新发送失败事件失败: $e");
+        }
+      }
     }
   }
 

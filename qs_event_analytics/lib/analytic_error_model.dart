@@ -7,9 +7,9 @@ class AnalyticErrorModel {
   // 主键
   @JsonKey(name: "id")
   final int? id;
-  final String data;
+  final String? data;
 
-  AnalyticErrorModel({this.id, required this.data});
+  AnalyticErrorModel({this.id, this.data});
 
   /// 从 JSON 创建 AnalyticErrorModel 对象
   factory AnalyticErrorModel.fromJson(Map<String, dynamic> json) =>
