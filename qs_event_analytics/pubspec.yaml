@@ -1,6 +1,6 @@
 name: qs_event_analytics
 description: "一个轨迹打点分析的插件"
-version: 0.0.3
+version: 1.0.0
 homepage: "https://github.com/fallpine/qs_event_analytics"
 
 environment:
@@ -12,8 +12,8 @@ dependencies:
     sdk: flutter
   plugin_platform_interface: ^2.0.2
   net_dio_request: ^0.0.4
-  firebase_core: ^4.3.0
-  firebase_analytics: ^12.1.0
+  firebase_core: ^4.4.0
+  firebase_analytics: ^12.1.1
   package_info_plus: ^9.0.0
   ip_location: ^0.0.1
   uuid: ^4.5.2
