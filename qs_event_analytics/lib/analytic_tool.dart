@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:ip_location/ip_location.dart';
 import 'package:net_dio_request/net_request.dart';
@@ -19,13 +20,14 @@ class AnalyticTool {
     required String api,
     required String systemVersion,
     required String appVersion,
+    FirebaseOptions? options,
   }) async {
     _userid = userid;
     _api = api;
     _systemVersion = systemVersion;
     _appVersion = appVersion;
 
-    await FirebaseAnalyticTool.initialize();
+    await FirebaseAnalyticTool.initialize(options: options);
   }
 
   /// 打点

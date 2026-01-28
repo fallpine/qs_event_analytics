@@ -5,15 +5,12 @@ import 'package:package_info_plus/package_info_plus.dart';
 class FirebaseAnalyticTool {
   /// Func
   // 初始化
-  static Future<void> initialize() async {
-    await Firebase.initializeApp();
+  static Future<void> initialize({FirebaseOptions? options}) async {
+    await Firebase.initializeApp(options: options);
   }
 
   /// 打点
-  static Future<void> addEvent({
-    required String name,
-    Map<String, Object>? parameters,
-  }) async {
+  static Future<void> addEvent({required String name, Map<String, Object>? parameters}) async {
     // 获取版本号
     final info = await PackageInfo.fromPlatform();
     var version = info.version;
