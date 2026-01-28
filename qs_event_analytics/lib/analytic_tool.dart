@@ -27,7 +27,10 @@ class AnalyticTool {
     _systemVersion = systemVersion;
     _appVersion = appVersion;
 
-    _netChecker = await NetConnectionChecker.getInstance();
+    Future.delayed(Duration(milliseconds: 100), () async {
+      _netChecker = await NetConnectionChecker.getInstance();
+    });
+
     await FirebaseAnalyticTool.initialize(options: options);
   }
 
