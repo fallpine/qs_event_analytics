@@ -20,15 +20,12 @@ dependencies:
   connectivity_plus: ^7.0.0
   event_bus: ^2.0.1
   sqflite: ^2.4.2
-  json_annotation: ^4.9.0
   path: ^1.9.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  build_runner: ^2.6.0
-  json_serializable: ^6.10.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
