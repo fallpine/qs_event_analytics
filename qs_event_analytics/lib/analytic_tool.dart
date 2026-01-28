@@ -27,6 +27,7 @@ class AnalyticTool {
     _systemVersion = systemVersion;
     _appVersion = appVersion;
 
+    _netChecker = await NetConnectionChecker.getInstance();
     await FirebaseAnalyticTool.initialize(options: options);
   }
 
@@ -174,7 +175,10 @@ class AnalyticTool {
       },
     );
     // 检查网络连接
-    NetConnectionChecker.getInstance().then((checker) {});
+    if (_netChecker?.isConnected == true) {
+      // 重新发送失败事件
+      _resendFailedEvents();
+    }
   }
 
   /// 重新发送失败事件
@@ -225,6 +229,8 @@ class AnalyticTool {
   String currentPageCode = "";
   String _currentPageName = "";
   Map<String, dynamic>? _currentPageExtra;
+
+  NetConnectionChecker? _netChecker;
 
   /// 单例
   static final AnalyticTool _instance = AnalyticTool._internal();

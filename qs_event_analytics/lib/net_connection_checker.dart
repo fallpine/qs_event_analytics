@@ -31,60 +31,44 @@ class NetConnectionChecker {
 
   Future<void> _updateConnectionStatus(List<ConnectivityResult> result) async {
     if (result.contains(ConnectivityResult.mobile)) {
+      isConnected = true;
       EventBusTool.sendEvent(
-        event: ScriptEventType(
-          "net_connect_state",
-          argument: {"isConnected": true},
-        ),
+        event: ScriptEventType("net_connect_state", argument: {"isConnected": true}),
       );
     } else if (result.contains(ConnectivityResult.wifi)) {
+      isConnected = true;
       EventBusTool.sendEvent(
-        event: ScriptEventType(
-          "net_connect_state",
-          argument: {"isConnected": true},
-        ),
+        event: ScriptEventType("net_connect_state", argument: {"isConnected": true}),
       );
     } else if (result.contains(ConnectivityResult.ethernet)) {
+      isConnected = true;
       EventBusTool.sendEvent(
-        event: ScriptEventType(
-          "net_connect_state",
-          argument: {"isConnected": true},
-        ),
+        event: ScriptEventType("net_connect_state", argument: {"isConnected": true}),
       );
     } else if (result.contains(ConnectivityResult.vpn)) {
+      isConnected = true;
       EventBusTool.sendEvent(
-        event: ScriptEventType(
-          "net_connect_state",
-          argument: {"isConnected": true},
-        ),
+        event: ScriptEventType("net_connect_state", argument: {"isConnected": true}),
       );
     } else if (result.contains(ConnectivityResult.bluetooth)) {
+      isConnected = false;
       EventBusTool.sendEvent(
-        event: ScriptEventType(
-          "net_connect_state",
-          argument: {"isConnected": false},
-        ),
+        event: ScriptEventType("net_connect_state", argument: {"isConnected": false}),
       );
     } else if (result.contains(ConnectivityResult.other)) {
+      isConnected = false;
       EventBusTool.sendEvent(
-        event: ScriptEventType(
-          "net_connect_state",
-          argument: {"isConnected": false},
-        ),
+        event: ScriptEventType("net_connect_state", argument: {"isConnected": false}),
       );
     } else if (result.contains(ConnectivityResult.none)) {
+      isConnected = false;
       EventBusTool.sendEvent(
-        event: ScriptEventType(
-          "net_connect_state",
-          argument: {"isConnected": false},
-        ),
+        event: ScriptEventType("net_connect_state", argument: {"isConnected": false}),
       );
     } else {
+      isConnected = false;
       EventBusTool.sendEvent(
-        event: ScriptEventType(
-          "net_connect_state",
-          argument: {"isConnected": false},
-        ),
+        event: ScriptEventType("net_connect_state", argument: {"isConnected": false}),
       );
     }
   }
@@ -92,10 +76,10 @@ class NetConnectionChecker {
   /// Property
   final Connectivity _connectivity = Connectivity();
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+  bool isConnected = false;
 
   /// 单例
-  static final NetConnectionChecker _instance =
-      NetConnectionChecker._internal();
+  static final NetConnectionChecker _instance = NetConnectionChecker._internal();
   NetConnectionChecker._internal();
 
   static Future<NetConnectionChecker> getInstance() async {
