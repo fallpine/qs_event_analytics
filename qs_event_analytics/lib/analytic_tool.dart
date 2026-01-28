@@ -184,13 +184,20 @@ class AnalyticTool {
       try {
         var errorModel = AnalyticErrorModel.fromJson(jsonDecode(row.data ?? ""));
         var model = AnalyticModel.fromJson(jsonDecode(errorModel.data ?? ""));
+
+        if (model.eventCode == null || model.eventName == null) {
+          // 删除事件
+          db.delete(row: errorModel);
+          continue;
+        }
+
         recordEvent(
-          sessionId: model.sessionId,
-          eventCode: model.eventCode,
-          eventName: model.eventName,
-          eventType: model.eventType,
-          timestamp: model.timestamp,
-          belongPage: model.belongPage,
+          sessionId: model.sessionId ?? "",
+          eventCode: model.eventCode ?? "",
+          eventName: model.eventName ?? "",
+          eventType: model.eventType ?? EventType.state,
+          timestamp: model.timestamp ?? DateTime.now().millisecondsSinceEpoch,
+          belongPage: model.belongPage ?? "",
           extra: model.extra,
           onSuccess: () {
             // 删除成功的事件

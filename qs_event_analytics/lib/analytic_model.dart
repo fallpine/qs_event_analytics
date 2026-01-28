@@ -1,16 +1,13 @@
-import 'package:json_annotation/json_annotation.dart';
+import 'dart:convert';
 
-part 'analytic_model.g.dart';
-
-@JsonSerializable()
 class AnalyticModel {
-  final String sessionId;
-  final String eventCode;
-  final String eventName;
-  final EventType eventType;
-  final int timestamp;
-  final String? belongPage;
-  final Map<String, String>? extra;
+  String? sessionId;
+  String? eventCode;
+  String? eventName;
+  EventType? eventType;
+  int? timestamp;
+  String? belongPage;
+  Map<String, String>? extra;
 
   AnalyticModel({
     required this.sessionId,
@@ -22,12 +19,37 @@ class AnalyticModel {
     required this.extra,
   });
 
-  /// 从 JSON 创建 AnalyticModel 对象
-  factory AnalyticModel.fromJson(Map<String, dynamic> json) =>
-      _$AnalyticModelFromJson(json);
+  AnalyticModel.fromJson(Map<String, dynamic> json) {
+    sessionId = json['sessionId'];
+    eventCode = json['eventCode'];
+    eventName = json['eventName'];
+    try {
+      eventType = EventType.values.firstWhere((element) => element.name == json['eventType']);
+    } catch (_) {
+      eventType = null;
+    }
 
-  /// 将 AnalyticModel 对象转为 JSON
-  Map<String, dynamic> toJson() => _$AnalyticModelToJson(this);
+    timestamp = json['timestamp'];
+    belongPage = json['belongPage'];
+    try {
+      extra = jsonDecode(json['extra']);
+    } catch (_) {
+      extra = null;
+    }
+  }
+
+  Map<String, dynamic> toJson() {
+    final data = <String, dynamic>{};
+    data['sessionId'] = sessionId;
+    data['eventCode'] = eventCode;
+    data['eventName'] = eventName;
+    data['eventType'] = eventType?.name;
+    data['timestamp'] = timestamp;
+    data['belongPage'] = belongPage;
+    data['extra'] = jsonEncode(extra);
+
+    return data;
+  }
 }
 
 enum EventType {
