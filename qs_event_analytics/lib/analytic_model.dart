@@ -32,7 +32,12 @@ class AnalyticModel {
     timestamp = json['timestamp'];
     belongPage = json['belongPage'];
     try {
-      extra = jsonDecode(json['extra']);
+      var jsonExtra = jsonDecode(json['extra']);
+      if (jsonExtra is Map<String, String>) {
+        extra = jsonExtra;
+      } else {
+        extra = null;
+      }
     } catch (_) {
       extra = null;
     }
