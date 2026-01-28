@@ -182,7 +182,7 @@ class AnalyticTool {
     var rows = await db.queryAll();
     for (var row in rows) {
       try {
-        var errorModel = AnalyticErrorModel.fromJson(jsonDecode(row.data ?? ""));
+        var errorModel = AnalyticErrorModel(id: row.id, data: row.data);
         var model = AnalyticModel.fromJson(jsonDecode(errorModel.data ?? ""));
 
         if (model.eventCode == null || model.eventName == null) {
