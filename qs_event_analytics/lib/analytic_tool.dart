@@ -42,6 +42,7 @@ class AnalyticTool {
     int? timestamp,
     required String? belongPage,
     Map<String, String>? extra,
+    required VoidCallback onSuccess,
   }) {
     var newTimestamp = timestamp ?? DateTime.now().millisecondsSinceEpoch;
     if (type == EventType.pageIn) {
@@ -53,6 +54,7 @@ class AnalyticTool {
           type: EventType.pageOut,
           timestamp: newTimestamp - 1,
           belongPage: currentPageCode,
+          onSuccess: () {},
         );
       }
       // 记录新页面
@@ -73,7 +75,7 @@ class AnalyticTool {
       timestamp: newTimestamp,
       belongPage: belongPage,
       extra: extra,
-      onSuccess: () {},
+      onSuccess: onSuccess,
       onError: () {
         // 记录失败的事件
         var model = AnalyticModel(
@@ -161,7 +163,14 @@ class AnalyticTool {
     Map<String, String>? extra = pageData["extra"] as Map<String, String>?;
 
     if (code != null && name != null) {
-      addEvent(code: code, name: name, type: EventType.pageIn, belongPage: code, extra: extra);
+      addEvent(
+        code: code,
+        name: name,
+        type: EventType.pageIn,
+        belongPage: code,
+        extra: extra,
+        onSuccess: () {},
+      );
     }
   }
 
