@@ -20,12 +20,14 @@ class AnalyticTool {
     required String api,
     required String systemVersion,
     required String appVersion,
+    required List<String> ignoreFailedEventCodes,
     FirebaseOptions? options,
   }) async {
     _userid = userid;
     _api = api;
     _systemVersion = systemVersion;
     _appVersion = appVersion;
+    _ignoreFailedEventCodes = ignoreFailedEventCodes;
 
     Future.delayed(Duration(milliseconds: 100), () async {
       _netChecker = await NetConnectionChecker.getInstance();
@@ -81,18 +83,20 @@ class AnalyticTool {
       onError: () {
         onError();
         // 记录失败的事件
-        var model = AnalyticModel(
-          sessionId: _sessionId,
-          eventCode: code,
-          eventName: name,
-          eventType: type,
-          timestamp: newTimestamp,
-          belongPage: belongPage,
-          extra: extra,
-        );
-        var data = jsonEncode(model);
-        var errorModel = AnalyticErrorModel(data: data);
-        AnalyticErrorDb.getInstance().then((db) => db.insert(row: errorModel));
+        if (!_ignoreFailedEventCodes.contains(code)) {
+          var model = AnalyticModel(
+            sessionId: _sessionId,
+            eventCode: code,
+            eventName: name,
+            eventType: type,
+            timestamp: newTimestamp,
+            belongPage: belongPage,
+            extra: extra,
+          );
+          var data = jsonEncode(model);
+          var errorModel = AnalyticErrorModel(data: data);
+          AnalyticErrorDb.getInstance().then((db) => db.insert(row: errorModel));
+        }
       },
     );
   }
@@ -246,6 +250,7 @@ class AnalyticTool {
   String _currentPageName = "";
   Map<String, dynamic>? _currentPageExtra;
 
+  List<String> _ignoreFailedEventCodes = [];
   NetConnectionChecker? _netChecker;
 
   /// 单例
